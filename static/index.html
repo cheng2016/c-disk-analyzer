@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C 盘空间分析</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap head">
+      <div>
+        <p class="eyebrow">仅本机 127.0.0.1:8765</p>
+        <h1>C 盘空间分析</h1>
+        <p class="lede">这里统计的是 C 盘磁盘占用，不是内存条。用来看最近安装的软件、最近新增的大文件，以及哪些目录真正占着空间。</p>
+      </div>
+      <div class="actions">
+        <button id="start-btn" type="button">开始分析</button>
+        <button id="stop-btn" type="button" disabled>停止</button>
+        <button id="clean-btn" class="primary" type="button" disabled>一键清空占大头缓存</button>
+      </div>
+    </div>
+  </header>
+  <nav class="tabs">
+    <div class="wrap tab-row">
+      <a href="#overview">总览</a>
+      <a href="#hogs">占用大户</a>
+      <a href="#software">最近安装</a>
+      <a href="#recent">最近文件</a>
+      <a href="#caches">应用缓存</a>
+    </div>
+  </nav>
+  <main class="wrap">
+    <p id="notice" class="notice" hidden></p>
+    <p id="clean-result" class="clean-result" hidden></p>
+
+    <section id="overview" class="panel">
+      <div class="section-head">
+        <h2>总览</h2>
+        <p id="phase-line" class="status-line">正在连接…</p>
+      </div>
+      <div class="stats">
+        <article><span>已用</span><strong id="used">—</strong></article>
+        <article><span>剩余</span><strong id="free">—</strong></article>
+        <article><span>总容量</span><strong id="total">—</strong></article>
+        <article><span>已用比例</span><strong id="percent">—</strong></article>
+      </div>
+      <div class="meter" aria-hidden="true"><div id="disk-fill" class="meter-fill"></div></div>
+      <p id="disk-warn" class="warn-line" hidden></p>
+      <div class="scan-box">
+        <div class="scan-track"><div id="scan-fill" class="scan-fill"></div></div>
+        <p id="scan-detail" class="muted"></p>
+        <p id="scan-path" class="path muted"></p>
+        <p id="access-note" class="muted"></p>
+        <p id="counted" class="muted" hidden></p>
+      </div>
+      <div id="conclusion" class="cards"></div>
+      <h3>一级目录</h3>
+      <div id="level-bars"></div>
+      <p id="level-note" class="muted"></p>
+    </section>
+
+    <section id="hogs" class="panel">
+      <div class="section-head">
+        <h2>占用大户</h2>
+        <input id="hog-filter" type="search" placeholder="筛选路径" aria-label="筛选占用路径">
+      </div>
+      <h3>最大的文件夹</h3>
+      <div id="dir-table"></div>
+      <div class="section-head">
+        <h3>最大的文件</h3>
+        <div class="actions">
+          <button id="select-all-files" type="button">全选</button>
+          <button id="delete-files" class="primary" type="button" disabled>删除选中的文件</button>
+        </div>
+      </div>
+      <p class="muted">系统文件和 Windows 目录里的文件不能删。程序目录里的文件删了之后，对应软件可能打不开。</p>
+      <div id="file-table"></div>
+    </section>
+
+    <section id="software" class="panel">
+      <div class="section-head">
+        <h2>最近安装的软件</h2>
+        <label class="check"><input id="only-recent" type="checkbox"> 只看近 90 天</label>
+        <input id="software-filter" type="search" placeholder="筛选名称或路径" aria-label="筛选软件">
+        <button id="select-all-software" type="button">全选</button>
+        <button id="uninstall-software" class="primary" type="button" disabled>卸载选中的软件</button>
+      </div>
+      <p class="muted">卸载会打开软件自带的卸载程序，需要你在弹出的窗口里确认。没有卸载程序的项不能选。</p>
+      <p id="software-summary" class="muted"></p>
+      <div id="software-table"></div>
+    </section>
+
+    <section id="recent" class="panel">
+      <div class="section-head">
+        <h2>最近新增的文件</h2>
+        <div class="days" role="group" aria-label="时间范围">
+          <button type="button" class="day-btn" data-days="7">7 天</button>
+          <button type="button" class="day-btn active" data-days="30">30 天</button>
+          <button type="button" class="day-btn" data-days="90">90 天</button>
+        </div>
+        <input id="recent-filter" type="search" placeholder="筛选路径" aria-label="筛选最近文件">
+        <button id="select-all-recent" type="button">全选</button>
+        <button id="delete-recent" class="primary" type="button" disabled>删除选中的文件</button>
+      </div>
+      <p id="recent-summary" class="muted"></p>
+      <div id="recent-table"></div>
+    </section>
+
+    <section id="caches" class="panel">
+      <div class="section-head">
+        <h2>应用缓存</h2>
+        <input id="cache-filter" type="search" placeholder="筛选缓存" aria-label="筛选缓存">
+        <button id="select-all-caches" type="button">全选</button>
+        <button id="clean-caches" class="primary" type="button" disabled>清理选中的缓存</button>
+      </div>
+      <p class="muted">默认勾选体积靠前、且可以安全清理的项。微信、下载目录、Maven 仓库和 Windows 更新只展示，不会被一键清掉。系统文件如 pagefile.sys 也不会删。</p>
+      <div id="cache-table"></div>
+    </section>
+  </main>
+  <footer class="wrap foot">删除和卸载都会先列出具体项目。系统文件和 Windows 目录不会删。卸载由软件自己的卸载程序完成。</footer>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h3 id="modal-title">确认清理</h3>
+      <p id="modal-text"></p>
+      <ul id="modal-list"></ul>
+      <p id="modal-warn" class="warn-line">只会删除这些缓存里的文件，缓存文件夹本身会留下。正在使用的文件会被跳过。</p>
+      <div class="modal-actions">
+        <button id="modal-cancel" type="button">取消</button>
+        <button id="modal-ok" class="primary" type="button">确认清理</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
